@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Primer Suite</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo" aria-hidden="true">🧬</span>
+    <div><h1>Primer Suite</h1><p>Primer design · Binding check · Multiplex dimer analysis</p></div>
+  </div>
+  <nav class="tabs" role="tablist">
+    <button class="tab-btn active" data-tab="design" role="tab">Primer Design</button>
+    <button class="tab-btn" data-tab="binding" role="tab">Binding Check</button>
+    <button class="tab-btn" data-tab="multiplex" role="tab">Multiplex Dimers</button>
+    <button class="tab-btn" data-tab="settings" role="tab">Settings</button>
+  </nav>
+</header>
+
+<main>
+<!-- ============================== DESIGN ============================== -->
+<section id="tab-design" class="tab active">
+  <div class="layout">
+    <div class="panel inputs">
+      <h2>Template</h2>
+      <p class="hint">Paste raw or FASTA sequence. Optionally mark the region that must be amplified with square brackets, e.g. <code>ACGT[TTGACC...]GGCA</code>, or give coordinates below.</p>
+      <textarea id="d-template" rows="8" spellcheck="false" placeholder=">my_gene&#10;ATGGTGAGCAAGGGCGAGGAG..."></textarea>
+      <div class="row between wrap">
+        <span class="muted" id="d-template-info">0 bp</span>
+        <span>
+          <button class="btn small" id="d-open">Open file…</button><input type="file" id="d-file" accept=".fa,.fasta,.fna,.ffn,.txt,.gb,.gbk,.genbank,.seq,.dna,.csv,.tsv" hidden>
+          <button class="btn small ghost" id="d-example">Load example</button>
+          <button class="btn small ghost" id="d-clear">Clear</button>
+        </span>
+      </div>
+      <div class="row gap wrap top" style="margin-top:8px">
+        <input type="text" id="d-acc" placeholder="NCBI accession (e.g. NM_001101.5) — needs internet" spellcheck="false" style="flex:1;min-width:200px">
+        <button class="btn small" id="d-fetch">Fetch from NCBI</button>
+      </div>
+
+      <h2>Organism</h2>
+      <div class="row gap"><select id="d-organism" class="organism"></select><button class="btn small ghost" id="d-gcapply" title="Set GC limits typical for this organism">Apply GC range</button></div>
+      <div class="muted" id="d-organism-info"></div>
+      <label class="check" style="margin-top:6px"><input type="checkbox" id="d-spec" checked> Screen results against this organism's background sequences (off-target sites &amp; products)</label>
+
+      <h2>Parameters</h2>
+      <div class="grid3">
+        <label>Target start<input type="number" id="d-tstart" min="1" placeholder="optional"></label>
+        <label>Target end<input type="number" id="d-tend" min="1" placeholder="optional"></label>
+        <label>Pairs to return<input type="number" id="d-num" value="10" min="1" max="100"></label>
+
+        <label>Product min (bp)<input type="number" id="d-pmin" value="100" min="30"></label>
+        <label>Product max (bp)<input type="number" id="d-pmax" value="1000" min="30"></label>
+        <label>Max pair ΔTm (°C)<input type="number" id="d-tmdiff" value="5" step="0.5" min="0"></label>
+
+        <label>Length min<input type="number" id="d-lmin" value="18" min="10"></label>
+        <label>Length opt<input type="number" id="d-lopt" value="20" min="10"></label>
+        <label>Length max<input type="number" id="d-lmax" value="27" min="10" max="40"></label>
+
+        <label>Tm min (°C)<input type="number" id="d-tmin" value="57" step="0.5"></label>
+        <label>Tm opt (°C)<input type="number" id="d-topt" value="60" step="0.5"></label>
+        <label>Tm max (°C)<input type="number" id="d-tmax" value="63" step="0.5"></label>
+
+        <label>GC min (%)<input type="number" id="d-gcmin" value="30"></label>
+        <label>GC max (%)<input type="number" id="d-gcmax" value="70"></label>
+        <label>Max poly-X run<input type="number" id="d-polyx" value="4" min="2"></label>
+
+        <label>Max self-dimer ΔG<input type="number" id="d-selfdg" value="-8" step="0.5"></label>
+        <label>Max hairpin ΔG<input type="number" id="d-hpdg" value="-3" step="0.5"></label>
+        <label>Max pair-dimer ΔG<input type="number" id="d-pairdg" value="-8" step="0.5"></label>
+      </div>
+      <div class="row wrap gap">
+        <label class="check"><input type="checkbox" id="d-clamp" checked> Require GC clamp (G/C in last 5 nt)</label>
+        <label class="check"><input type="checkbox" id="d-unique" checked> Reject primers whose 3′ 12-mer occurs twice in template</label>
+      </div>
+      <div class="row gap top">
+        <button class="btn primary" id="d-run">Design primers</button>
+        <span class="status" id="d-status"></span>
+      </div>
+    </div>
+
+    <div class="panel results" id="d-results">
+      <div class="empty">Design results will appear here.</div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== BINDING ============================== -->
+<section id="tab-binding" class="tab">
+  <div class="layout">
+    <div class="panel inputs">
+      <h2>Template</h2>
+      <textarea id="b-template" rows="7" spellcheck="false" placeholder="Raw or FASTA sequence"></textarea>
+      <div class="row between wrap"><span class="muted" id="b-template-info">0 bp</span>
+        <span><button class="btn small" id="b-open">Open file…</button><input type="file" id="b-file" accept=".fa,.fasta,.fna,.ffn,.txt,.gb,.gbk,.genbank,.seq,.dna,.csv,.tsv" hidden><button class="btn small ghost" id="b-example">Load example</button><button class="btn small ghost" id="b-clear">Clear</button></span></div>
+      <p class="hint">Multi-record FASTA / GenBank files are scanned record by record.</p>
+      <div class="row gap wrap" style="margin-top:4px">
+        <input type="text" id="b-acc" placeholder="NCBI accession — needs internet" spellcheck="false" style="flex:1;min-width:200px">
+        <button class="btn small" id="b-fetch">Fetch from NCBI</button>
+      </div>
+      <h2>Organism</h2>
+      <select id="b-organism" class="organism"></select>
+      <div class="muted" id="b-organism-info"></div>
+      <label class="check" style="margin-top:6px"><input type="checkbox" id="b-bg"> Also scan this organism's background sequences</label>
+      <h2>Primers</h2>
+      <p class="hint">One per line: <code>name sequence</code>, FASTA, or bare sequences. IUPAC codes allowed.</p>
+      <textarea id="b-primers" rows="6" spellcheck="false" placeholder="GFP_F ATGGTGAGCAAGGGCGAGGAG&#10;GFP_R TTACTTGTACAGCTCGTCCATGC"></textarea>
+      <div class="row between"><span class="muted" id="b-primers-info"></span><span><button class="btn small" id="b-popen">Open primer file…</button><input type="file" id="b-pfile" accept=".fa,.fasta,.fna,.ffn,.txt,.gb,.gbk,.genbank,.seq,.dna,.csv,.tsv" hidden></span></div>
+      <div class="grid3">
+        <label>Max mismatches<input type="number" id="b-mm" value="3" min="0" max="8"></label>
+        <label>Max product (bp)<input type="number" id="b-maxprod" value="5000" min="30"></label>
+        <label>Max sites / primer<input type="number" id="b-maxsites" value="200" min="1"></label>
+      </div>
+      <div class="row gap top">
+        <button class="btn primary" id="b-run">Check binding</button>
+        <span class="status" id="b-status"></span>
+      </div>
+    </div>
+    <div class="panel results" id="b-results"><div class="empty">Binding sites and predicted products will appear here.</div></div>
+  </div>
+</section>
+
+<!-- ============================== MULTIPLEX ============================== -->
+<section id="tab-multiplex" class="tab">
+  <div class="layout">
+    <div class="panel inputs">
+      <h2>Primer set</h2>
+      <p class="hint">All primers that will share one tube. One per line: <code>name sequence</code>, FASTA, or bare sequences.</p>
+      <textarea id="m-primers" rows="10" spellcheck="false" placeholder="A_F  ACGT...&#10;A_R  ACGT...&#10;B_F  ACGT...&#10;B_R  ACGT..."></textarea>
+      <div class="row between wrap"><span class="muted" id="m-primers-info">0 primers</span>
+        <span><button class="btn small" id="m-popen">Open primer file…</button><input type="file" id="m-pfile" accept=".fa,.fasta,.fna,.ffn,.txt,.gb,.gbk,.genbank,.seq,.dna,.csv,.tsv" hidden><button class="btn small ghost" id="m-example">Load example</button><button class="btn small ghost" id="m-clear">Clear</button></span></div>
+      <h2>Thresholds (kcal/mol)</h2>
+      <div class="grid3">
+        <label>Warn: dimer ΔG ≤<input type="number" id="m-warn" value="-6" step="0.5"></label>
+        <label>Fail: dimer ΔG ≤<input type="number" id="m-fail" value="-9" step="0.5"></label>
+        <label>3′ stem ΔG ≤<input type="number" id="m-end3" value="-5" step="0.5"></label>
+        <label>Hairpin ΔG ≤<input type="number" id="m-hp" value="-3" step="0.5"></label>
+        <label>Tm spread warn (°C)<input type="number" id="m-tmspread" value="5" step="0.5"></label>
+      </div>
+      <div class="row gap top">
+        <button class="btn primary" id="m-run">Analyse dimers</button>
+        <span class="status" id="m-status"></span>
+      </div>
+    </div>
+    <div class="panel results" id="m-results"><div class="empty">Pairwise dimer matrix, interactions and pool suggestions will appear here.</div></div>
+  </div>
+</section>
+
+<!-- ============================== SETTINGS ============================== -->
+<section id="tab-settings" class="tab">
+  <div class="layout">
+    <div class="panel inputs">
+      <h2>Reaction conditions</h2>
+      <p class="hint">Used for every Tm and ΔG in the application.</p>
+      <div class="grid3">
+        <label>Na⁺ / K⁺ (mM)<input type="number" id="s-na" value="50" step="1" min="0"></label>
+        <label>Mg²⁺ (mM)<input type="number" id="s-mg" value="1.5" step="0.1" min="0"></label>
+        <label>dNTPs total (mM)<input type="number" id="s-dntp" value="0.8" step="0.1" min="0"></label>
+        <label>Primer conc. (nM)<input type="number" id="s-oligo" value="250" step="10" min="1"></label>
+        <label>ΔG temperature (°C)<input type="number" id="s-temp" value="37" step="1"></label>
+      </div>
+      <div class="row gap top">
+        <button class="btn primary" id="s-save">Save</button>
+        <button class="btn ghost" id="s-reset">Reset defaults</button>
+        <span class="status" id="s-status"></span>
+      </div>
+      <h2>Quick primer check</h2>
+      <div class="row gap">
+        <input type="text" id="s-quick" placeholder="Paste one primer sequence" spellcheck="false" style="flex:1">
+        <button class="btn" id="s-quick-run">Analyse</button>
+      </div>
+      <div id="s-quick-out"></div>
+    </div>
+    <div class="panel results">
+      <h2>Organisms &amp; background sequences</h2>
+      <p class="hint">Load genome, transcriptome, plasmid or amplicon sequences (FASTA / GenBank, multi-record OK) for an organism. They are stored inside this app/browser and used offline for specificity screening in <em>Primer Design</em> and <em>Binding Check</em>. Whole mammalian genomes are too large for in-browser scanning; use transcript sets, chromosomes or gene regions instead.</p>
+      <div class="row gap wrap">
+        <select id="s-organism" class="organism" style="flex:1;min-width:200px"></select>
+        <button class="btn small" id="s-lib-add">Add sequence files…</button><input type="file" id="s-lib-file" multiple accept=".fa,.fasta,.fna,.ffn,.txt,.gb,.gbk,.genbank,.seq,.dna,.csv,.tsv" hidden>
+        <button class="btn small ghost" id="s-lib-clear">Remove all</button>
+      </div>
+      <div id="s-lib-list" class="muted" style="margin-top:8px"></div>
+
+      <h2>About</h2>
+      <p><strong>Primer Suite</strong> runs identically as a web page and as an offline desktop application (Electron). All computation happens locally; no sequence ever leaves your computer.</p>
+      <h3>Methods</h3>
+      <ul class="about">
+        <li><strong>Tm</strong>: nearest-neighbour model with SantaLucia (1998) unified parameters; salt correction 0.368·(N−1)·ln[Na⁺]; Mg²⁺ converted to Na⁺-equivalent as 120·√([Mg²⁺]−[dNTP]) (von Ahsen 2001). Primer concentration enters as C/4.</li>
+        <li><strong>Dimers</strong>: every antiparallel ungapped alignment of two primers is scored; stems (≥2 bp) are summed with nearest-neighbour ΔG, duplex initiation and internal-loop penalties (SantaLucia &amp; Hicks 2004). The most stable structure and the most stable structure involving a 3′-terminal base are reported.</li>
+        <li><strong>Hairpins</strong>: all stem/loop combinations with loop ≥ 3 nt, scored with stacking + hairpin-loop penalties.</li>
+        <li><strong>Binding check</strong>: exhaustive scan of both strands allowing up to N mismatches with IUPAC support; Tm of mismatched sites is estimated from the matched stacks only.</li>
+        <li><strong>Design</strong>: Primer3-style candidate enumeration and penalty scoring (Tm, length, GC, clamp, self-structure, 3′ stability, uniqueness) followed by pair scoring (ΔTm, cross-dimer, product size).</li>
+        <li><strong>Multiplex</strong>: full pairwise cross-dimer matrix, 3′-end dimer detection, per-primer interaction counts and a greedy partition into compatible pools.</li>
+        <li><strong>Specificity</strong>: primers are scanned against the selected organism's background sequences (≤ 2 mismatches, last 3 bases of the 3′ end matched); every forward/reverse site combination within 4 kb is reported as a potential product.</li>
+      </ul>
+      <p class="muted">Rules of thumb: cross/self-dimer ΔG below −6 kcal/mol deserves attention, below −9 is usually a problem; a 3′-terminal stem below −5 (or a 3′-anchored structure below −6) can produce primer-dimer product. Hairpins below −3 (or any 3′-end hairpin) are undesirable.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer><span>Primer Suite v1.0.0</span><span id="mode-indicator"></span></footer>
+
+<div id="toast" class="toast" hidden></div>
+<div id="modal" class="modal" hidden><div class="modal-box"><div class="row between"><h3 id="modal-title"></h3><button class="btn small ghost" id="modal-close">✕</button></div><div id="modal-body"></div></div></div>
+
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

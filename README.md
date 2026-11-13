@@ -5,6 +5,8 @@ One code base runs as a **web app** (any modern browser, can even be opened as a
 and as an **offline desktop application** (Windows / macOS / Linux via Electron).
 All calculations run locally; no sequence data leaves the computer.
 
+**[User guide](docs/USER_GUIDE.md)** — installation, step-by-step use of every tab, parameter reference, interpretation of results and troubleshooting.
+
 ## Features
 
 | Tab | What it does |

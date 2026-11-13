@@ -61,4 +61,12 @@ footer { display: flex; justify-content: space-between; padding: 10px 20px; colo
 ul.about { padding-left: 18px; } ul.about li { margin: 6px 0; }
 .warnbox { background: var(--warn-soft); color: var(--warn); border-radius: 8px; padding: 8px 12px; margin: 8px 0; font-size: 12.5px; }
 
+.prows { display: flex; flex-direction: column; gap: 6px; }
+.prow { display: grid; grid-template-columns: 34px minmax(90px, 1.1fr) minmax(160px, 2.6fr) 52px 28px; gap: 6px; align-items: center; }
+.prow .pnum { font-size: 12px; color: var(--muted); font-weight: 600; text-align: right; }
+.prow input { padding: 6px 8px; } .prow .pseq { text-transform: uppercase; } .prow .pseq::placeholder { text-transform: none; } .prow .pseq.bad { border-color: var(--bad); }
+.prow .plen { font-size: 11px; color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.prow .pdel { border: 0; background: transparent; color: var(--muted); cursor: pointer; font-size: 16px; line-height: 1; padding: 2px; } .prow .pdel:hover { color: var(--bad); }
+@media (max-width: 480px) { .prow { grid-template-columns: 28px 1fr 1.8fr 28px; } .prow .plen { display: none; } }
+
 [hidden] { display: none !important; }

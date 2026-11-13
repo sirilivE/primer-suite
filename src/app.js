@@ -83,7 +83,7 @@ Bad_R     AGCTTGCATGCCTGCAGGTCGAC`;
   hookFile('d-open', 'd-file', files => { $('d-template').value = fileToTemplateText(files[0]); fire('d-template'); toast(`Loaded ${files[0].name}`); });
   hookFile('b-open', 'b-file', files => { $('b-template').value = files.map(fileToTemplateText).join('\n'); fire('b-template'); toast(`Loaded ${files.map(f => f.name).join(', ')}`); });
   hookFile('b-popen', 'b-pfile', files => { const cur = $('b-primers').value.trim(); $('b-primers').value = (cur ? cur + '\n' : '') + files.map(fileToPrimerText).join('\n'); fire('b-primers'); });
-  hookFile('m-popen', 'm-pfile', files => { const cur = $('m-primers').value.trim(); $('m-primers').value = (cur ? cur + '\n' : '') + files.map(fileToPrimerText).join('\n'); fire('m-primers'); });
+  hookFile('m-popen', 'm-pfile', files => { const n = mAppendText(files.map(fileToPrimerText).join('\n')); toast(`${n} primer${n === 1 ? '' : 's'} added from file`); });
 
   // NCBI fetch (online only)
   async function fetchAccession(accId, taId, btnId) {
@@ -129,7 +129,7 @@ Bad_R     AGCTTGCATGCCTGCAGGTCGAC`;
 
   // ------------------------------------------------------------ persistence
   const PERSIST = ['d-template', 'd-tstart', 'd-tend', 'd-num', 'd-pmin', 'd-pmax', 'd-tmdiff', 'd-lmin', 'd-lopt', 'd-lmax', 'd-tmin', 'd-topt', 'd-tmax', 'd-gcmin', 'd-gcmax', 'd-polyx', 'd-selfdg', 'd-hpdg', 'd-pairdg',
-    'b-template', 'b-primers', 'b-mm', 'b-maxprod', 'b-maxsites', 'm-primers', 'm-warn', 'm-fail', 'm-end3', 'm-hp', 'm-tmspread'];
+    'b-template', 'b-primers', 'b-mm', 'b-maxprod', 'b-maxsites', 'm-warn', 'm-fail', 'm-end3', 'm-hp', 'm-tmspread'];
   for (const id of PERSIST) {
     const el = $(id);
     const v = lsGet('ps.' + id); if (v !== null) el.value = v;
@@ -153,15 +153,14 @@ Bad_R     AGCTTGCATGCCTGCAGGTCGAC`;
   templateInfo('d-template', 'd-template-info');
   templateInfo('b-template', 'b-template-info');
   const primerCount = (taId, infoId) => { const upd = () => { const n = E.parsePrimerList($(taId).value).length; $(infoId).textContent = `${n} primer${n === 1 ? '' : 's'}`; }; $(taId).addEventListener('input', upd); upd(); };
-  primerCount('m-primers', 'm-primers-info');
   primerCount('b-primers', 'b-primers-info');
 
   $('d-example').onclick = () => { $('d-template').value = EXAMPLE_TEMPLATE; $('d-tstart').value = 300; $('d-tend').value = 500; $('d-pmin').value = 200; $('d-pmax').value = 500; ['d-template', 'd-tstart', 'd-tend', 'd-pmin', 'd-pmax'].forEach(fire); };
   $('d-clear').onclick = () => { $('d-template').value = ''; fire('d-template'); };
   $('b-example').onclick = () => { $('b-template').value = EXAMPLE_TEMPLATE; $('b-primers').value = EXAMPLE_BINDING_PRIMERS; ['b-template', 'b-primers'].forEach(fire); };
   $('b-clear').onclick = () => { $('b-template').value = ''; $('b-primers').value = ''; ['b-template', 'b-primers'].forEach(fire); };
-  $('m-example').onclick = () => { $('m-primers').value = EXAMPLE_MULTIPLEX; fire('m-primers'); };
-  $('m-clear').onclick = () => { $('m-primers').value = ''; fire('m-primers'); };
+  $('m-example').onclick = () => { mSetRows(E.parsePrimerList(EXAMPLE_MULTIPLEX)); };
+  $('m-clear').onclick = () => { mSetRows([]); };
 
   // ============================================================= ORGANISMS
   const ORG_SELECTS = ['d-organism', 'b-organism', 's-organism'];
@@ -249,9 +248,7 @@ Bad_R     AGCTTGCATGCCTGCAGGTCGAC`;
     showTab('binding'); runBinding();
   }
   function addToMultiplex(primers) {
-    const existing = $('m-primers').value.trim();
-    const add = primers.map(p => `${p.name}\t${p.seq}`).join('\n');
-    $('m-primers').value = (existing ? existing + '\n' : '') + add; fire('m-primers');
+    mAddRows(primers);
     toast(`${primers.length} primer${primers.length > 1 ? 's' : ''} added to the multiplex set`);
   }
 
@@ -475,13 +472,76 @@ Bad_R     AGCTTGCATGCCTGCAGGTCGAC`;
       for (const res of results) for (const a of res.amps) rows.push([res.rec.name, a.forward.name, a.reverse.name, a.start, a.end, a.size, a.mismatches, a.perfect]);
       download('binding_sites.csv', csv(rows), 'text/csv');
     };
-    $('b-mp').onclick = () => { $('m-primers').value = primers.map(p => `${p.name}\t${p.seq}`).join('\n'); fire('m-primers'); showTab('multiplex'); runMultiplex(); };
+    $('b-mp').onclick = () => { mSetRows(primers); showTab('multiplex'); runMultiplex(); };
   }
+
+  // ====================================================== MULTIPLEX ROWS
+  // Numbered primer rows ("Primer 1", "Primer 2", …). The hidden textarea #m-primers mirrors the
+  // rows in "name<TAB>sequence" form so the rest of the app keeps using parsePrimerList().
+  let mRows = [];
+  (function loadRows() {
+    try { const j = lsGet('ps.m-rows'); if (j) mRows = JSON.parse(j).filter(r => r && typeof r.seq === 'string'); } catch (e) { mRows = []; }
+    if (!mRows.length) { const txt = lsGet('ps.m-primers'); if (txt) mRows = E.parsePrimerList(txt); }
+    if (!mRows.length) mRows = [{ name: 'Primer 1', seq: '' }];
+  })();
+  function mNextName() {
+    let max = 0;
+    for (const r of mRows) { const m = /^Primer\s*(\d+)$/i.exec(r.name.trim()); if (m) max = Math.max(max, +m[1]); }
+    return 'Primer ' + (Math.max(max, mRows.length) + 1);
+  }
+  function mSync() {
+    $('m-primers').value = mRows.filter(r => E.cleanSeq(r.seq).length >= 6).map(r => `${(r.name || '').trim() || 'Primer'}\t${E.cleanSeq(r.seq)}`).join('\n');
+    lsSet('ps.m-rows', JSON.stringify(mRows)); lsSet('ps.m-primers', $('m-primers').value);
+    const n = mRows.filter(r => E.cleanSeq(r.seq).length >= 6).length;
+    $('m-primers-info').textContent = `${n} primer${n === 1 ? '' : 's'}` + (mRows.length > n ? ` (${mRows.length - n} row${mRows.length - n === 1 ? '' : 's'} without a valid sequence)` : '');
+  }
+  function mRender(focusIdx) {
+    const box = $('m-rows');
+    box.innerHTML = mRows.map((r, i) => {
+      const seq = E.cleanSeq(r.seq);
+      return `<div class="prow" data-i="${i}"><span class="pnum">${i + 1}</span><input class="pname" type="text" value="${esc(r.name)}" placeholder="name" spellcheck="false" title="Primer name"><input class="pseq ${r.seq && seq.length < 6 ? 'bad' : ''}" type="text" value="${esc(r.seq)}" placeholder="sequence 5′→3′" spellcheck="false" autocomplete="off"><span class="plen">${seq.length ? seq.length + ' nt' : ''}</span><button class="pdel" title="Remove this primer" aria-label="Remove">×</button></div>`;
+    }).join('');
+    box.querySelectorAll('.prow').forEach(row => {
+      const i = +row.dataset.i;
+      row.querySelector('.pname').addEventListener('input', e => { mRows[i].name = e.target.value; mSync(); });
+      row.querySelector('.pseq').addEventListener('input', e => {
+        mRows[i].seq = e.target.value; const seq = E.cleanSeq(mRows[i].seq);
+        row.querySelector('.plen').textContent = seq.length ? seq.length + ' nt' : '';
+        e.target.classList.toggle('bad', !!mRows[i].seq && seq.length < 6); mSync();
+      });
+      row.querySelector('.pseq').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (i === mRows.length - 1) mAddRows([{ name: mNextName(), seq: '' }], true); else mRender(i + 1); } });
+      row.querySelector('.pname').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); row.querySelector('.pseq').focus(); } });
+      row.querySelector('.pdel').onclick = () => { mRows.splice(i, 1); if (!mRows.length) mRows.push({ name: 'Primer 1', seq: '' }); mRender(); mSync(); };
+    });
+    if (focusIdx != null) { const el = box.querySelectorAll('.prow .pseq')[focusIdx]; if (el) el.focus(); }
+    mSync();
+  }
+  function mAddRows(items, focusLast) {
+    for (const it of items) mRows.push({ name: (it.name || '').trim() || mNextName(), seq: it.seq || '' });
+    // drop a leading blank placeholder row when real primers arrive
+    if (mRows.length > 1 && mRows[0].seq === '' && /^Primer\s*1$/i.test(mRows[0].name) && items.some(x => x.seq)) mRows.shift();
+    mRender(focusLast ? mRows.length - 1 : null);
+  }
+  function mSetRows(items) { mRows = items.map((it, k) => ({ name: (it.name || '').trim() || 'Primer ' + (k + 1), seq: it.seq || '' })); if (!mRows.length) mRows = [{ name: 'Primer 1', seq: '' }]; mRender(); }
+  function mAppendText(text) {
+    const list = E.parsePrimerList(text).map(p => ({ name: /^Primer\d+$/.test(p.name) ? '' : p.name, seq: p.seq }));
+    mAddRows(list); return list.length;
+  }
+  $('m-add').onclick = () => mAddRows([{ name: mNextName(), seq: '' }], true);
+  $('m-paste').onclick = () => {
+    showModal('Paste a primer list', `<p class="hint">One primer per line: <code>name sequence</code>, <code>name,sequence</code>, FASTA, or bare sequences (they get the next free number).</p><textarea id="m-paste-ta" rows="10" spellcheck="false" placeholder="EGFP_F  ATGGTGAGCAAGGGCGAGGAG&#10;EGFP_R  TTACTTGTACAGCTCGTCCATGC"></textarea><div class="actions"><button class="btn primary" id="m-paste-add">Add to list</button><button class="btn" id="m-paste-replace">Replace list</button></div>`);
+    $('m-paste-add').onclick = () => { const n = mAppendText($('m-paste-ta').value); $('modal').hidden = true; toast(`${n} primer${n === 1 ? '' : 's'} added`); };
+    $('m-paste-replace').onclick = () => { mSetRows(E.parsePrimerList($('m-paste-ta').value).map(p => ({ name: /^Primer\d+$/.test(p.name) ? '' : p.name, seq: p.seq }))); $('modal').hidden = true; };
+    $('m-paste-ta').focus();
+  };
+  mRender();
 
   // ============================================================= MULTIPLEX
   function runMultiplex() {
+    mSync();
     const primers = E.parsePrimerList($('m-primers').value);
-    if (primers.length < 1) { toast('Please enter primers'); return; }
+    if (primers.length < 1) { toast('Please enter at least one primer sequence'); return; }
+    if (primers.length < mRows.length) toast(`${mRows.length - primers.length} row(s) without a valid sequence skipped`);
     busy('m-run', 'm-status', 'Computing pairwise dimers…', () => {
       const r = E.analyzeMultiplex(primers, { warnDG: num('m-warn', -6), failDG: num('m-fail', -9), end3DG: num('m-end3', -5), hairpinDG: num('m-hp', -3), tmSpreadWarn: num('m-tmspread', 5), cond: currentCond() });
       renderMultiplex(primers, r);

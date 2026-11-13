@@ -128,10 +128,19 @@
   <div class="layout">
     <div class="panel inputs">
       <h2>Primer set</h2>
-      <p class="hint">All primers that will share one tube. One per line: <code>name sequence</code>, FASTA, or bare sequences.</p>
-      <textarea id="m-primers" rows="10" spellcheck="false" placeholder="A_F  ACGT...&#10;A_R  ACGT...&#10;B_F  ACGT...&#10;B_R  ACGT..."></textarea>
-      <div class="row between wrap"><span class="muted" id="m-primers-info">0 primers</span>
-        <span><button class="btn small" id="m-popen">Open primer file…</button><input type="file" id="m-pfile" accept=".fa,.fasta,.fna,.ffn,.txt,.gb,.gbk,.genbank,.seq,.dna,.csv,.tsv" hidden><button class="btn small ghost" id="m-example">Load example</button><button class="btn small ghost" id="m-clear">Clear</button></span></div>
+      <p class="hint">All primers that will share one tube. Each row is numbered automatically; rename it if you like. Press Enter in a sequence field to add the next primer.</p>
+      <div id="m-rows" class="prows"></div>
+      <div class="row between wrap" style="margin-top:8px">
+        <span class="muted" id="m-primers-info">0 primers</span>
+        <span class="row wrap" style="gap:4px">
+          <button class="btn small primary" id="m-add">+ Add primer</button>
+          <button class="btn small" id="m-paste">Paste list…</button>
+          <button class="btn small" id="m-popen">Open primer file…</button><input type="file" id="m-pfile" accept=".fa,.fasta,.fna,.ffn,.txt,.gb,.gbk,.genbank,.seq,.dna,.csv,.tsv" hidden>
+          <button class="btn small ghost" id="m-example">Load example</button>
+          <button class="btn small ghost" id="m-clear">Clear</button>
+        </span>
+      </div>
+      <textarea id="m-primers" hidden></textarea>
       <h2>Thresholds (kcal/mol)</h2>
       <div class="grid3">
         <label>Warn: dimer ΔG ≤<input type="number" id="m-warn" value="-6" step="0.5"></label>

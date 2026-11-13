@@ -42,6 +42,8 @@ Four tabs at the top:
 Each tab has an **input panel** on the left and a **results panel** on the right (stacked on narrow screens).
 Buttons labelled *Export CSV* / *Export JSON* save the results as files; *Copy* buttons put sequences on the clipboard.
 
+![Primer Design tab with the example template loaded](images/design-input.png)
+
 ---
 
 ## 3. Entering sequences
@@ -125,13 +127,20 @@ Pairs are listed best first. Each card shows:
 * Coloured badges: green = fine, amber = worth a look, red = problem.
 * If background screening ran: *no background hits*, *N background sites*, or *N off-target products* (red).
 
+![Ranked primer pairs](images/design-results.png)
+
 Buttons on each card:
 
 * **Show product** — the amplicon sequence with the primers highlighted (copy button inside).
+
+  ![Product view](images/design-product.png)
+
 * **Check binding** — sends template and pair to *Binding Check*.
 * **Add to multiplex** — appends the pair to the multiplex set. *All pairs → multiplex check* does this for every pair.
 * **Copy primers / Copy FASTA**.
 * **Structures** — the self-dimer, cross-dimer and hairpin alignments behind the numbers.
+
+![Dimer and hairpin structures of a pair](images/design-structures.png)
 
 If no pair is found, the warning tells you whether forward or reverse candidates were missing; relax Tm, length, GC
 or product size, or widen the target.
@@ -156,9 +165,13 @@ Results:
   * a **binding map** — coloured bars on the + strand (upper row) and − strand (lower row); faded bars are mismatched sites; hover for details;
   * **Predicted products** — forward site × reverse site combinations: size, mismatches, whether both 3′ ends are matched,
     *perfect* / *mismatched*, and *single-primer* when the same primer makes both ends. *View* shows the product sequence;
+
+![Binding map and predicted products](images/binding-results.png)
   * **Binding sites** — strand, position, number and positions of mismatches (counted from the primer's 5′ end),
     mismatches in the last five 3′ bases, whether the 3′-terminal base matches, estimated Tm of the mismatched duplex,
     and an alignment (*show*).
+
+![Binding site table with alignment](images/binding-sites.png)
 
 Interpretation: a site with a mismatched **3′ base** rarely primes; extra products with matched 3′ ends and sizes close
 to the intended one are the ones that will show on a gel.
@@ -169,8 +182,20 @@ to the intended one are the ones that will show on a gel.
 
 Checks whether primers can share one PCR tube.
 
-1. Paste all primers of the planned mix (both primers of every pair). *All pairs → multiplex check* in *Primer Design*
-   and *Primers → multiplex check* in *Binding Check* fill this box for you.
+1. Enter all primers of the planned mix (both primers of every pair). The primer set is a numbered list:
+   * every row has a number, a **name** (filled in automatically as *Primer 1*, *Primer 2*, … and editable) and a
+     **sequence** field (5′→3′); the length appears next to it;
+   * **+ Add primer** appends a new numbered row, and pressing **Enter** in a sequence field does the same;
+   * **×** removes a row; the numbers update;
+   * **Paste list…** opens a box for pasting many primers at once (name + sequence per line, FASTA or bare sequences),
+     either added to the list or replacing it; **Open primer file…** does the same from a file;
+   * *All pairs → multiplex check* in *Primer Design* and *Primers → multiplex check* in *Binding Check* fill the list for you.
+
+   ![Numbered primer list](images/multiplex-input.png)
+
+   After *+ Add primer* a new row appears with the next number:
+
+   ![New numbered row](images/multiplex-add-row.png)
 2. Thresholds (kcal/mol): **Warn** (default −6) and **Fail** (−9) for any dimer, **3′ stem** (−5) for dimers that
    include a primer's 3′-terminal base, **Hairpin** (−3), and the acceptable **Tm spread** (5 °C).
 3. Click **Analyse dimers**.
@@ -179,10 +204,14 @@ Results:
 
 * **Verdict banner** — *Compatible*, *Use with caution*, or *Incompatible*, with counts of failing/warning
   interactions, Tm range and the number of pools needed.
+
+![Multiplex verdict and primer table](images/multiplex-results.png)
 * **Primer table** — per primer: Tm, GC, hairpin, self-dimer, 3′ self stem ΔG, **Dimer events** (how many problematic
   dimers the primer takes part in), the partners involved, and flags.
 * **Cross-dimer ΔG matrix** — heat-map of every primer against every other (diagonal = self-dimer). Green = fine,
   amber = warning, red = fail. A ³′ mark means a 3′-end dimer. Click a cell to see the alignment.
+
+![Cross-dimer heat-map](images/multiplex-matrix.png)
 * **Problematic interactions** — sorted worst first, each with the base-pairing drawn out:
 
   ```
@@ -191,8 +220,12 @@ Results:
   3'-CAGCTGGACGTCCGTACGTTCGA-5'
   ```
 
+![Problematic interactions with alignments](images/multiplex-interactions.png)
+
 * **Suggested pools** — a split of the primers into groups with no failing or 3′-end interaction inside a group.
   Keep each forward/reverse pair in the same pool when you adapt the suggestion.
+
+![Suggested pools](images/multiplex-pools.png)
 
 Rules of thumb: ΔG above −6 is normally harmless; −6 to −9 may reduce yield; below −9, or any 3′-end dimer below
 −5, usually produces visible primer-dimer. Keep Tm within about 5 °C across the mix.
@@ -233,6 +266,8 @@ or a transcript set instead.
 | ΔG temperature | 37 °C | temperature at which dimer/hairpin ΔG is reported |
 
 Click **Save** to keep them. **Quick primer check** analyses one primer (Tm, GC, dimers, hairpin, reverse complement).
+
+![Settings tab](images/settings.png)
 
 ---
 
